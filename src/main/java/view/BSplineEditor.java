@@ -5,8 +5,7 @@ import model.ModelContext;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.util.List;
 import java.awt.geom.Point2D;
 
 public class BSplineEditor extends JFrame {
@@ -46,6 +45,7 @@ public class BSplineEditor extends JFrame {
         gbc.gridx = 0; gbc.gridy = 0;
         panel.add(new JLabel("N (segments per span):"), gbc);
         spinnerN = new JSpinner(new SpinnerNumberModel(workingCopy.N, 1, 200, 1));
+        spinnerN.addChangeListener(e -> updatePreview());
         gbc.gridx = 1;
         panel.add(spinnerN, gbc);
 
@@ -53,6 +53,7 @@ public class BSplineEditor extends JFrame {
         gbc.gridx = 0; gbc.gridy = 1;
         panel.add(new JLabel("M (number of generative lines):"), gbc);
         spinnerM = new JSpinner(new SpinnerNumberModel(workingCopy.M, 2, 360, 1));
+        spinnerM.addChangeListener(e -> updatePreview());
         gbc.gridx = 1;
         panel.add(spinnerM, gbc);
 
@@ -60,6 +61,7 @@ public class BSplineEditor extends JFrame {
         gbc.gridx = 0; gbc.gridy = 2;
         panel.add(new JLabel("M1 (circle subdivisions):"), gbc);
         spinnerM1 = new JSpinner(new SpinnerNumberModel(workingCopy.M1, 1, 50, 1));
+        spinnerM1.addChangeListener(e -> updatePreview());
         gbc.gridx = 1;
         panel.add(spinnerM1, gbc);
 
@@ -73,6 +75,10 @@ public class BSplineEditor extends JFrame {
 
         // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton autoFitBtn = new JButton("Auto Fit");
+        autoFitBtn.addActionListener(e -> canvas.autoFit());
+        buttonPanel.add(autoFitBtn);
 
         JButton applyBtn = new JButton("Apply");
         applyBtn.addActionListener(e -> applyChanges());
@@ -100,7 +106,7 @@ public class BSplineEditor extends JFrame {
         changesMade = true;
         updatePointCountLabel();
 
-        // real-time update
+        applyChanges();
     }
 
     void updatePointCountLabel() {
@@ -134,7 +140,8 @@ public class BSplineEditor extends JFrame {
         changesMade = false;
 
         if (frameWork != null) {
-            frameWork.updateModel();
+            List<Point2D.Float> bSpline = canvas.computCurrentBSplineCurve();
+            frameWork.updateModel(bSpline);
         }
     }
 
@@ -152,5 +159,14 @@ public class BSplineEditor extends JFrame {
 
     public void setFrameWork(FrameWork framework) {
         this.frameWork = framework;
+    }
+
+    private void updatePreview() {
+        workingCopy.N = (Integer) spinnerN.getValue();
+        workingCopy.M = (Integer) spinnerM.getValue();
+        workingCopy.M1 = (Integer) spinnerM1.getValue();
+
+        changesMade = true;
+        canvas.repaint();
     }
 }

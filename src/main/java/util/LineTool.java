@@ -1,21 +1,19 @@
 package util;
 
-
-import view.ImagePanel;
-
+import model.Point3D;
+import view.RenderPanel;
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.List;
 
 public class LineTool {
     private static LineTool instance;
     private int x0, y0 = -1;
-    private ImagePanel canvas;
+    private RenderPanel canvas;
     private BufferedImage img;
 
-    private static int FAR_COLOR_RGB = Color.GREEN.getRGB();
-    private static int NEAR_COLOR_RGB = Color.BLACK.getRGB();
+    private static int FAR_COLOR_RGB = 0;
+    private static int NEAR_COLOR_RGB = Color.GREEN.getRGB();
 
     private LineTool(){}
 
@@ -34,11 +32,17 @@ public class LineTool {
         this.img = img;
     }
 
-    public void setCanvas(ImagePanel canvas) {
+    public void setCanvas(RenderPanel canvas) {
         this.canvas = canvas;
     }
 
-    public void drawLine(int x1, int y1, int x2, int y2, int z1, int z2) {
+    public void drawLine(Point2D p1, Point2D p2, float z1, float z2) {
+        if (p1 == null || p2 == null) return;
+        int x1 = (int) p1.getX();
+        int x2 = (int) p2.getX();
+        int y1 = (int) p1.getY();
+        int y2 = (int) p2.getY();
+
         // if steep
         if (Math.abs(y2 - y1) > Math.abs(x2 - x1)) {
             drawLineV(x1, y1, x2, y2, z1, z2);
@@ -48,7 +52,7 @@ public class LineTool {
     }
 
 
-    public void drawLineH(int x1, int y1, int x2, int y2, int z1, int z2){
+    public void drawLineH(int x1, int y1, int x2, int y2, float z1, float z2){
         // just mirror coordinates
         if (x1 > x2) {
             int tmp = x1;
@@ -82,7 +86,7 @@ public class LineTool {
         }
     }
 
-    public void drawLineV(int x1, int y1, int x2, int y2, int z1, int z2){
+    public void drawLineV(int x1, int y1, int x2, int y2, float z1, float z2){
         if (y1 > y2) {
             int tmp = y1;
             y1 = y2;
@@ -121,7 +125,15 @@ public class LineTool {
         if (x >= canvas.getWidth() || x < 0 || y >= canvas.getHeight() || y < 0){
             return;
         }
-        int rgb = (int) (((1 - z)*NEAR_COLOR_RGB + z*FAR_COLOR_RGB)*255);
+        int r1 = (FAR_COLOR_RGB >> 16) & 0xFF;
+        int r2 = (FAR_COLOR_RGB >> 16) & 0xFF;
+        int g1 = (FAR_COLOR_RGB >> 8) & 0xFF;
+        int g2 = (NEAR_COLOR_RGB >> 8) & 0xFF;
+        int b1 = (FAR_COLOR_RGB) & 0xFF;
+        int b2 = (NEAR_COLOR_RGB) & 0xFF;
+        int rgb = (int) ((r2 - r1) * z + r1) << 16 |
+                (int) ((g2 - g1) * z + g1) << 8 |
+                (int) ((b2 - b1) * z + b1);
         img.setRGB(x, y, rgb);
     }
 }

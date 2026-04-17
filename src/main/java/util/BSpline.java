@@ -19,7 +19,7 @@ public class BSpline {
         for (int i = 1; i <= K - 3; i++){
             float[] Giu = getVectorGU(controlPoints, i);
             float[] Giv = getVectorGV(controlPoints, i);
-            for (int j = 0; j < N; j++){
+            for (int j = 0; j <= N; j++){
                 float t = stepT*j;
                 float[] TM = Matrix.multiplyVectorByMatrix(getVectorT(t), M);
 

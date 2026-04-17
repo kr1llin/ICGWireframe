@@ -4,12 +4,12 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 
 public class MenuPanel extends JMenuBar {
-    ImagePanel panel;
+    RenderPanel panel;
     FrameWork frameWork;
     ButtonGroup imageModeGroup;
     ButtonGroup viewModeGroup;
 
-    public MenuPanel(ImagePanel p){
+    public MenuPanel(RenderPanel p){
         imageModeGroup = new ButtonGroup();
         viewModeGroup = new ButtonGroup();
 

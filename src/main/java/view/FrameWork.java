@@ -4,12 +4,14 @@ import model.ModelContext;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Point2D;
+import java.util.List;
 
 public class FrameWork extends JFrame {
     public static final int DEFAULT_WIDTH = 1500;
     public static final int DEFAULT_HEIGHT = 1100;
 
-    private ImagePanel imagePanel;
+    private RenderPanel renderPanel;
     private JScrollPane scrollPane;
     private ToolBarPanel toolBar;
 
@@ -21,40 +23,42 @@ public class FrameWork extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
 
+        modelContext = new ModelContext();
+
         addGuiComponents();
         pack();
 
-        imagePanel.resizeCanvas(scrollPane.getViewport().getWidth(), scrollPane.getHeight());
+        renderPanel.resizeCanvas(scrollPane.getViewport().getWidth(), scrollPane.getHeight());
 
         revalidate();
         setLocationRelativeTo(null);
 
-        modelContext = new ModelContext();
     }
 
     private void addGuiComponents(){
         // 1. Add edit canvas
         scrollPane = new JScrollPane();
 
-        imagePanel = new ImagePanel(scrollPane, this);
+        renderPanel = new RenderPanel(scrollPane, this);
 
-        scrollPane.setViewportView(imagePanel);
+        scrollPane.setViewportView(renderPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
         add(scrollPane, BorderLayout.CENTER);
 
         // 2. Add menu
-        var menuBar = new MenuPanel(imagePanel);
+        var menuBar = new MenuPanel(renderPanel);
         setJMenuBar(menuBar);
 
         // 3. Add toolbar
-        toolBar = new ToolBarPanel(imagePanel);
+        toolBar = new ToolBarPanel(renderPanel);
         add(toolBar, BorderLayout.NORTH);
     }
 
-    public void updateModel(){
-        repaint();
+    public void updateModel(List<Point2D.Float> bSplinePoints){
+        System.out.println("Calculated BSplinePoints(" + bSplinePoints.size() + "): " + bSplinePoints);
+        renderPanel.updateModel(bSplinePoints);
     }
 
     @Override
@@ -70,7 +74,7 @@ public class FrameWork extends JFrame {
         return modelContext;
     }
 
-    public ImagePanel getImagePanel() {
-        return imagePanel;
+    public RenderPanel getImagePanel() {
+        return renderPanel;
     }
 }

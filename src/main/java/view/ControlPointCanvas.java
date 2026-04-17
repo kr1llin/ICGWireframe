@@ -11,9 +11,10 @@ import java.util.logging.Logger;
 
 public class ControlPointCanvas extends JPanel {
     private final List<Point2D.Float> controlPoints;
+    private List<Point2D.Float> bSplinePoints;
     private final BSplineEditor parentEditor;
 
-    private double viewCenterX = 0.5;   // world coordinates at canvas center
+    private double viewCenterX = 0.0;   // world coordinates at canvas center
     private double viewCenterY = 0.0;
     private double scale = 200.0;       // pixels per world unit
 
@@ -93,8 +94,7 @@ public class ControlPointCanvas extends JPanel {
         addMouseMotionListener(mouseAdapter);
 
         addMouseWheelListener(e -> {
-            double zoomFactor = 1.1;
-            double oldScale = scale;
+            double zoomFactor = 1.05;
             if (e.getWheelRotation() < 0) {
                 scale *= zoomFactor;
             } else {
@@ -114,6 +114,8 @@ public class ControlPointCanvas extends JPanel {
         repaint();
         parentEditor.onPointsChanged();
         parentEditor.updatePointCountLabel();
+
+        System.out.println("Added control point at " + newPoint);
     }
 
     private void removePoint(int index) {
@@ -175,7 +177,6 @@ public class ControlPointCanvas extends JPanel {
 
     private void drawAxes(Graphics2D g2) {
         g2.setColor(AXIS_COLOR);
-        Point origin = worldToScreen(0, 0);
 
         // U axis
         Point left = worldToScreen(-100, 0);
@@ -186,10 +187,6 @@ public class ControlPointCanvas extends JPanel {
         Point top = worldToScreen(0, 100);
         Point bottom = worldToScreen(0, -100);
         g2.drawLine(top.x, top.y, bottom.x, bottom.y);
-
-        // Labels
-        g2.drawString("U", right.x - 10, right.y - 5);
-        g2.drawString("V", bottom.x + 5, bottom.y + 10);
     }
 
     private void drawControlPolygon(Graphics2D g2) {
@@ -205,22 +202,25 @@ public class ControlPointCanvas extends JPanel {
         }
     }
 
+    public List<Point2D.Float> computCurrentBSplineCurve(){
+        return BSpline.computeCurve(controlPoints, parentEditor.getN());
+    }
+
     private void drawBSplineCurve(Graphics2D g2) {
-        List<Point2D.Float> curvePoints = BSpline.computeCurve(controlPoints, parentEditor.getN());
-        if (curvePoints == null) {
+        bSplinePoints = BSpline.computeCurve(controlPoints, parentEditor.getN());
+        if (bSplinePoints == null) {
             System.out.println("Bspline is null!");
             return;
         }
 
         g2.setColor(BSPLINE_COLOR);
-        Point2D.Float first = curvePoints.getFirst();
+        Point2D.Float first = bSplinePoints.getFirst();
         Point prev = worldToScreen(first.x, first.y);
-        for (int i = 1; i < curvePoints.size(); i++) {
-            Point cur = worldToScreen(curvePoints.get(i).x, curvePoints.get(i).y);
+        for (int i = 1; i < bSplinePoints.size(); i++) {
+            Point cur = worldToScreen(bSplinePoints.get(i).x, bSplinePoints.get(i).y);
             g2.drawLine(prev.x, prev.y, cur.x, cur.y);
             prev = cur;
         }
-        System.out.println("Bspline count: " + curvePoints.size());
     }
 
     private void drawControlPoints(Graphics2D g2) {
@@ -234,5 +234,71 @@ public class ControlPointCanvas extends JPanel {
                     4 * POINT_RADIUS, 4 * POINT_RADIUS);
             g2.setColor(POINT_COLOR);
         }
+    }
+
+    public List<Point2D.Float> getbSplinePoints() {
+        return bSplinePoints;
+    }
+
+    public void clearBSplinePoints(){
+        if (bSplinePoints != null) {
+            bSplinePoints.clear();
+        }
+    }
+
+    public List<Point2D.Float> getControlPoints() {
+        return controlPoints;
+    }
+
+    public void autoFit() {
+        if (controlPoints.isEmpty()) return;
+
+        float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+
+        for (Point2D.Float p : controlPoints) {
+            minX = Math.min(minX, p.x);
+            maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y);
+            maxY = Math.max(maxY, p.y);
+        }
+
+        List<Point2D.Float> curve = BSpline.computeCurve(controlPoints, parentEditor.getN());
+        if (curve != null) {
+            for (Point2D.Float p : curve) {
+                minX = Math.min(minX, p.x);
+                maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y);
+                maxY = Math.max(maxY, p.y);
+            }
+        }
+
+        if (minX == maxX) {
+            minX -= 1.0;
+            maxX += 1.0;
+        }
+        if (minY == maxY) {
+            minY -= 1.0;
+            maxY += 1.0;
+        }
+
+        viewCenterX = (minX + maxX) / 2.0;
+        viewCenterY = (minY + maxY) / 2.0;
+
+        double worldWidth = maxX - minX;
+        double worldHeight = maxY - minY;
+
+        int panelWidth = getWidth();
+        int panelHeight = getHeight();
+        if (panelWidth <= 0 || panelHeight <= 0) {
+            panelWidth = 800;
+            panelHeight = 600;
+        }
+
+        double scaleX = (panelWidth * 0.9) / worldWidth;
+        double scaleY = (panelHeight * 0.9) / worldHeight;
+        scale = Math.min(scaleX, scaleY);
+
+        repaint();
     }
 }

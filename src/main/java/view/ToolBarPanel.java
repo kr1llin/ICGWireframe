@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ToolBarPanel extends JToolBar {
-    private final ImagePanel imagePanel;
+    private final RenderPanel imagePanel;
     private final FrameWork frameWork;
 
-    public ToolBarPanel(ImagePanel pp){
+    public ToolBarPanel(RenderPanel pp){
         imagePanel = pp;
         frameWork = imagePanel.getFrameWork();
 
