@@ -1,6 +1,7 @@
 package view;
 
 import model.ModelContext;
+import util.BSpline;
 
 import javax.swing.*;
 import java.awt.*;
@@ -33,6 +34,7 @@ public class FrameWork extends JFrame {
         revalidate();
         setLocationRelativeTo(null);
 
+        initializeModel();
     }
 
     private void addGuiComponents(){
@@ -59,6 +61,15 @@ public class FrameWork extends JFrame {
     public void updateModel(List<Point2D.Float> bSplinePoints){
         System.out.println("Calculated BSplinePoints(" + bSplinePoints.size() + "): " + bSplinePoints);
         renderPanel.updateModel(bSplinePoints);
+    }
+
+    private void initializeModel() {
+        List<Point2D.Float> bSplinePoints = BSpline.computeCurve(modelContext.controlPoints, modelContext.N);
+        if (bSplinePoints != null && !bSplinePoints.isEmpty()) {
+            renderPanel.updateModel(bSplinePoints);
+        } else {
+            System.err.println("Couldn't build bspline");
+        }
     }
 
     @Override

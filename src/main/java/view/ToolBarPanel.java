@@ -1,6 +1,7 @@
 package view;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,7 @@ public class ToolBarPanel extends JToolBar {
         imagePanel = pp;
         frameWork = imagePanel.getFrameWork();
 
-        JMenuItem bSplineEditorItem = new JMenuItem(new AbstractAction("B-spline editor") {
+        JButton bSplineEditorBtn = new JButton(new AbstractAction("B-spline editor") {
             @Override
             public void actionPerformed(ActionEvent e) {
                 BSplineEditor bSplineEditor = new BSplineEditor(frameWork.getModelContext());
@@ -21,7 +22,7 @@ public class ToolBarPanel extends JToolBar {
                 bSplineEditor.setVisible(true);
             }
         });
-        add(bSplineEditorItem);
+        add(bSplineEditorBtn);
 
         addSeparator();
     }

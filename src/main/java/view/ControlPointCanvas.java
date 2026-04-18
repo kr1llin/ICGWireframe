@@ -17,6 +17,7 @@ public class ControlPointCanvas extends JPanel {
     private double viewCenterX = 0.0;   // world coordinates at canvas center
     private double viewCenterY = 0.0;
     private double scale = 200.0;       // pixels per world unit
+    private final double zoomFactor = 1.1;
 
     private Point2D.Float draggedPoint = null;
     private int dragIndex = -1;
@@ -42,20 +43,15 @@ public class ControlPointCanvas extends JPanel {
                 requestFocusInWindow();
                 lastMousePos = e.getPoint();
 
-                if (SwingUtilities.isLeftMouseButton(e)) {
-                    if (e.getClickCount() > 1) {
+                if (SwingUtilities.isLeftMouseButton(e) && !panning) {
                         dragIndex = findPointAt(e.getX(), e.getY());
                         if (dragIndex != -1) {
                             draggedPoint = controlPoints.get(dragIndex);
                         } else {
                             addPointAt(e.getX(), e.getY());
                         }
-                    } else {
-                        panning = true;
-                        setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-                    }
                 }
-                else if (SwingUtilities.isRightMouseButton(e)) {
+                else if (SwingUtilities.isRightMouseButton(e) && !panning) {
                     int idx = findPointAt(e.getX(), e.getY());
                     if (idx != -1) {
                         removePoint(idx);
@@ -84,38 +80,90 @@ public class ControlPointCanvas extends JPanel {
             public void mouseReleased(MouseEvent e) {
                 draggedPoint = null;
                 dragIndex = -1;
-                if (panning) {
-                    panning = false;
-                    setCursor(Cursor.getDefaultCursor());
-                }
             }
         };
         addMouseListener(mouseAdapter);
         addMouseMotionListener(mouseAdapter);
 
         addMouseWheelListener(e -> {
-            double zoomFactor = 1.05;
+            Point mouse = e.getPoint();
+            Point2D.Float before = screenToWorld(mouse.x, mouse.y);
+
             if (e.getWheelRotation() < 0) {
                 scale *= zoomFactor;
             } else {
                 scale /= zoomFactor;
             }
-            Point mouse = e.getPoint();
-            Point2D.Float before = screenToWorld(mouse.x, mouse.y);
-            viewCenterX = before.x;
-            viewCenterY = before.y;
+
+            Point2D.Float after = screenToWorld(mouse.x, mouse.y);
+
+            viewCenterX += (before.x - after.x);
+            viewCenterY += (before.y - after.y);
             repaint();
         });
+
+        KeyAdapter keyAdapter = new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                super.keyPressed(e);
+                if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+                    panning = true;
+                    setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e){
+                super.keyReleased(e);
+                if (e.getKeyCode() == KeyEvent.VK_CONTROL){
+                    panning = false;
+                    setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                }
+            }
+        };
+        addKeyListener(keyAdapter);
     }
 
     private void addPointAt(int screenX, int screenY) {
         Point2D.Float newPoint = screenToWorld(screenX, screenY);
-        controlPoints.add(newPoint);
+        int insertIndex = findInsertionIndex(screenX, screenY);
+        controlPoints.add(insertIndex, newPoint);
         repaint();
         parentEditor.onPointsChanged();
         parentEditor.updatePointCountLabel();
+    }
 
-        System.out.println("Added control point at " + newPoint);
+    private int findInsertionIndex(int screenX, int screenY) {
+        if (controlPoints.size() < 2) {
+            return controlPoints.size();
+        }
+        Point mousePoint = new Point(screenX, screenY);
+        int bestSegment = 0;
+        double minDist = Double.MAX_VALUE;
+
+        for (int i = 0; i < controlPoints.size() - 1; i++) {
+            Point p1 = worldToScreen(controlPoints.get(i).x, controlPoints.get(i).y);
+            Point p2 = worldToScreen(controlPoints.get(i + 1).x, controlPoints.get(i + 1).y);
+            double dist = distanceToSegment(mousePoint, p1, p2);
+            if (dist < minDist) {
+                minDist = dist;
+                bestSegment = i;
+            }
+        }
+        return bestSegment + 1;
+    }
+
+    private double distanceToSegment(Point p, Point a, Point b) {
+        double ax = b.x - a.x;
+        double ay = b.y - a.y;
+        double len2 = ax * ax + ay * ay;
+        if (len2 == 0) return Math.hypot(p.x - a.x, p.y - a.y);
+        double t = ((p.x - a.x) * ax + (p.y - a.y) * ay) / len2;
+        if (t < 0) t = 0;
+        if (t > 1) t = 1;
+        double projX = a.x + t * ax;
+        double projY = a.y + t * ay;
+        return Math.hypot(p.x - projX, p.y - projY);
     }
 
     private void removePoint(int index) {
@@ -153,13 +201,13 @@ public class ControlPointCanvas extends JPanel {
         return new Point(x, y);
     }
 
-    private Point2D.Float screenToWorld(int screenX, int screenY) {
+    private Point2D.Float screenToWorld(int x, int y) {
         int w = getWidth();
         int h = getHeight();
         int cx = w / 2;
         int cy = h / 2;
-        float u = (float) (viewCenterX + (screenX - cx) / scale);
-        float v = (float) (viewCenterY - (screenY - cy) / scale);
+        float u = (float) (viewCenterX + (x - cx) / scale);
+        float v = (float) (viewCenterY - (y - cy) / scale);
         return new Point2D.Float(u, v);
     }
 

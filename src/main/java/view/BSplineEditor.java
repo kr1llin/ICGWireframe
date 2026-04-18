@@ -167,6 +167,7 @@ public class BSplineEditor extends JFrame {
         workingCopy.M1 = (Integer) spinnerM1.getValue();
 
         changesMade = true;
+        applyChanges();
         canvas.repaint();
     }
 }

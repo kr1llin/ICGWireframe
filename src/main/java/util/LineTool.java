@@ -52,71 +52,54 @@ public class LineTool {
     }
 
 
-    public void drawLineH(int x1, int y1, int x2, int y2, float z1, float z2){
+    public void drawLineH(int x1, int y1, int x2, int y2, float z1, float z2) {
         // just mirror coordinates
         if (x1 > x2) {
-            int tmp = x1;
-            x1 = x2;
-            x2 = tmp;
-
-            tmp = y1;
-            y1 = y2;
-            y2 = tmp;
+            int tmp = x1; x1 = x2; x2 = tmp;
+            tmp = y1; y1 = y2; y2 = tmp;
+            float tmpZ = z1; z1 = z2; z2 = tmpZ;
         }
-
         int dx = x2 - x1;
         int dy = y2 - y1;
-
-        int stepY = (dy > 0)? 1 : -1;
-        dy *= stepY;
-
-        float stepZ = Math.abs(z2 - z1) / (float)(dx + 1);
-
+        int stepY = (dy > 0) ? 1 : -1;
+        dy = Math.abs(dy);
+        float stepZ = (z2 - z1) / dx;
         int err = -dx;
         int y = y1;
-        float z = Math.min(z1, z2);
-        for (int i = 0; i < dx + 1; i++){
-            err += 2*dy;
-            if (err > 0){
-                err -= 2*dx;
-                y += stepY;
-                z += stepZ;
-            }
+        float z = z1;
+        for (int i = 0; i <= dx; i++) {
             putPixel(x1 + i, y, z);
+            err += 2 * dy;
+            if (err > 0) {
+                err -= 2 * dx;
+                y += stepY;
+            }
+            z += stepZ;
         }
     }
 
-    public void drawLineV(int x1, int y1, int x2, int y2, float z1, float z2){
+    public void drawLineV(int x1, int y1, int x2, int y2, float z1, float z2) {
         if (y1 > y2) {
-            int tmp = y1;
-            y1 = y2;
-            y2 = tmp;
-
-            tmp = x1;
-            x1 = x2;
-            x2 = tmp;
+            int tmp = y1; y1 = y2; y2 = tmp;
+            tmp = x1; x1 = x2; x2 = tmp;
+            float tmpZ = z1; z1 = z2; z2 = tmpZ;
         }
-
         int dx = x2 - x1;
         int dy = y2 - y1;
-
-        int stepX = (dx > 0)? 1 : -1;
-        dx *= stepX;
-
-        float stepZ = Math.abs(z2 - z1) / (float)(dx + 1);
-
+        int stepX = (dx > 0) ? 1 : -1;
+        dx = Math.abs(dx);
+        float stepZ = (z2 - z1) / dy;
         int err = -dy;
         int x = x1;
-        float z = Math.min(z1,z2);
-
-        for (int i = 0; i < dy + 1; i++){
-            err += 2*dx;
-            if (err > 0){
-                err -= 2*dy;
-                x += stepX;
-                z += stepZ;
-            }
+        float z = z1;
+        for (int i = 0; i <= dy; i++) {
             putPixel(x, y1 + i, z);
+            err += 2 * dx;
+            if (err > 0) {
+                err -= 2 * dy;
+                x += stepX;
+            }
+            z += stepZ;
         }
     }
 
@@ -131,9 +114,9 @@ public class LineTool {
         int g2 = (NEAR_COLOR_RGB >> 8) & 0xFF;
         int b1 = (FAR_COLOR_RGB) & 0xFF;
         int b2 = (NEAR_COLOR_RGB) & 0xFF;
-        int rgb = (int) ((r2 - r1) * z + r1) << 16 |
-                (int) ((g2 - g1) * z + g1) << 8 |
-                (int) ((b2 - b1) * z + b1);
+        int rgb = (int) (r1*(1-z) + z * r2) << 16 |
+                (int) (g1*(1-z) + z * g2) << 8 |
+                (int) (b1*(1-z) + z * b2);
         img.setRGB(x, y, rgb);
     }
 }

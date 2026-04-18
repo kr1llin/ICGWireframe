@@ -4,6 +4,7 @@ import model.*;
 import util.LineTool;
 
 import java.awt.geom.Point2D;
+import java.util.ArrayList;
 import java.util.List;
 
 import java.awt.*;
@@ -82,23 +83,44 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         camera.updateMatrices(getWidth(), getHeight()); // when we changed window
         Point3D cameraPos = camera.getCameraPosition();
 
+        List<Point3D> rotatedPoints = new ArrayList<>();
+        List<Float> distances = new ArrayList<>();
+
         for (Line3D l : modelLines){
             Point3D rotP1 = l.p1.rotate(rotX, rotY, rotZ);
             Point3D rotP2 = l.p2.rotate(rotX, rotY, rotZ);
-
-            Point2D viewP1 = camera.project(rotP1);
-            Point2D viewP2 = camera.project(rotP2);
-//            Point2D viewP1 = camera.simpleProject(rotP1);
-//            Point2D viewP2 = camera.simpleProject(rotP2);
+            rotatedPoints.add(rotP1);
+            rotatedPoints.add(rotP2);
 
             float distanceToP1 = (float) Math.sqrt(Math.pow(rotP1.x - cameraPos.x, 2) + Math.pow(rotP1.y - cameraPos.y, 2) + Math.pow(rotP1.z - cameraPos.z, 2));
             float distanceToP2 = (float) Math.sqrt(Math.pow(rotP2.x - cameraPos.x, 2) + Math.pow(rotP2.y - cameraPos.y, 2) + Math.pow(rotP2.z - cameraPos.z, 2));
 
-//            float depth1 = (rotP1.z + 1) * 0.5f;
-//            float depth2 = (rotP2.z + 1) * 0.5f;
-//            depth1 = Math.min(1.0f, Math.max(0.0f, depth1));
-//            depth2 = Math.min(1.0f, Math.max(0.0f, depth2));
-            lineTool.drawLine(viewP1, viewP2, distanceToP1, distanceToP2);
+            distances.add(distanceToP1);
+            distances.add(distanceToP2);
+        }
+
+        float minDist = Float.MAX_VALUE, maxDist = -Float.MAX_VALUE;
+        for (float d : distances) {
+            if (d < minDist) minDist = d;
+            if (d > maxDist) maxDist = d;
+        }
+
+        int idx = 0;
+        for (Line3D l : modelLines) {
+            Point3D rotP1 = rotatedPoints.get(idx++);
+            Point3D rotP2 = rotatedPoints.get(idx++);
+            float d1 = distances.get(idx-2);
+            float d2 = distances.get(idx-1);
+
+            // 1 - near, 0 - far
+            float depth1 = 1.0f - (d1 - minDist) / (maxDist - minDist);
+            float depth2 = 1.0f - (d2 - minDist) / (maxDist - minDist);
+            depth1 = Math.min(1.0f, Math.max(0.0f, depth1));
+            depth2 = Math.min(1.0f, Math.max(0.0f, depth2));
+
+            Point2D viewP1 = camera.project(rotP1);
+            Point2D viewP2 = camera.project(rotP2);
+            lineTool.drawLine(viewP1, viewP2, depth1, depth2);
         }
 
         drawAxes(g2);
