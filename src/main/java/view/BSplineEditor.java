@@ -27,11 +27,15 @@ public class BSplineEditor extends JFrame {
         setSize(800, 600);
         setLayout(new BorderLayout());
 
-        canvas = new ControlPointCanvas(workingCopy.controlPoints, this);
-        add(canvas, BorderLayout.CENTER);
 
         JPanel controlPanel = createControlPanel();
         add(controlPanel, BorderLayout.SOUTH);
+
+        canvas = new ControlPointCanvas(workingCopy.controlPoints, this);
+        add(canvas, BorderLayout.CENTER);
+
+        updateFromContext(context);
+
     }
 
     private JPanel createControlPanel() {
@@ -143,6 +147,26 @@ public class BSplineEditor extends JFrame {
             List<Point2D.Float> bSpline = canvas.computCurrentBSplineCurve();
             frameWork.updateModel(bSpline);
         }
+    }
+
+    public void updateFromContext(ModelContext newContext) {
+        workingCopy.N = newContext.N;
+        workingCopy.M = newContext.M;
+        workingCopy.M1 = newContext.M1;
+        workingCopy.controlPoints.clear();
+        for (Point2D.Float p : newContext.controlPoints) {
+            workingCopy.controlPoints.add(new Point2D.Float(p.x, p.y));
+        }
+        spinnerN.setValue(workingCopy.N);
+        spinnerM.setValue(workingCopy.M);
+        spinnerM1.setValue(workingCopy.M1);
+        canvas.repaint();
+        updatePointCountLabel();
+        if (frameWork != null) {
+            List<Point2D.Float> bSpline = canvas.computCurrentBSplineCurve();
+            frameWork.updateModel(bSpline);
+        }
+        changesMade = false;
     }
 
     private ModelContext copyContext(ModelContext src) {

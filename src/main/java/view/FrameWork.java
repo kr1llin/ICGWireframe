@@ -2,9 +2,12 @@ package view;
 
 import model.ModelContext;
 import util.BSpline;
+import util.FileManager;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.geom.Point2D;
 import java.util.List;
 
@@ -13,13 +16,14 @@ public class FrameWork extends JFrame {
     public static final int DEFAULT_HEIGHT = 1100;
 
     private RenderPanel renderPanel;
-    private JScrollPane scrollPane;
     private ToolBarPanel toolBar;
 
     private ModelContext modelContext;
 
+    private final FileManager fileManager = new FileManager(this);
+
     public FrameWork(){
-        super("Filter");
+        super("Wireframe");
         this.setPreferredSize(new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
@@ -29,8 +33,6 @@ public class FrameWork extends JFrame {
         addGuiComponents();
         pack();
 
-        renderPanel.resizeCanvas(scrollPane.getViewport().getWidth(), scrollPane.getHeight());
-
         revalidate();
         setLocationRelativeTo(null);
 
@@ -39,15 +41,10 @@ public class FrameWork extends JFrame {
 
     private void addGuiComponents(){
         // 1. Add edit canvas
-        scrollPane = new JScrollPane();
 
-        renderPanel = new RenderPanel(scrollPane, this);
+        renderPanel = new RenderPanel(this);
 
-        scrollPane.setViewportView(renderPanel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        add(scrollPane, BorderLayout.CENTER);
+        add(renderPanel, BorderLayout.CENTER);
 
         // 2. Add menu
         var menuBar = new MenuPanel(renderPanel);
@@ -77,15 +74,22 @@ public class FrameWork extends JFrame {
         return new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT);
     }
 
-    public JScrollPane getScrollPane() {
-        return scrollPane;
-    }
-
     public ModelContext getModelContext() {
         return modelContext;
+    }
+
+    public void setModelContext(ModelContext modelContext) {
+        this.modelContext = modelContext;
+        renderPanel.setModelContext(modelContext);
+        initializeModel();
     }
 
     public RenderPanel getImagePanel() {
         return renderPanel;
     }
+
+    public FileManager getFileManager() {
+        return fileManager;
+    }
+
 }

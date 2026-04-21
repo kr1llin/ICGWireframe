@@ -24,6 +24,14 @@ public class ToolBarPanel extends JToolBar {
         });
         add(bSplineEditorBtn);
 
+        JButton resetAngleBtn = new JButton(new AbstractAction("Reset angle") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                imagePanel.resetRotation();
+            }
+        });
+        add(resetAngleBtn);
+
         addSeparator();
     }
 }

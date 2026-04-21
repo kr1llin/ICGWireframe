@@ -12,7 +12,8 @@ public class Camera {
     private float zn = 1.0f;
     private float zf = 20.0f;
 
-    private float[][] viewProjMatrix;
+    private float[][] rotationMatrix = Matrix.getRotationMatrix(0,0,0);
+    private float[][] rotateViewProjMatrix;
 
     private int screenWidth;
     private int screenHeight;
@@ -27,7 +28,8 @@ public class Camera {
         float sw = sh * aspect;
         float[][] projMatrix = buildPerspective(zn, zf, sw, sh);
 
-        viewProjMatrix = Matrix.multiplyMatrices(projMatrix, viewMatrix);
+        float[][] viewProjMatrix = Matrix.multiplyMatrices(projMatrix, viewMatrix);
+        rotateViewProjMatrix = Matrix.multiplyMatrices(viewProjMatrix, rotationMatrix);
     }
 
     // to camera coordinate system
@@ -69,7 +71,7 @@ public class Camera {
 
     public Point2D project(Point3D p) {
         float[] v = {p.x, p.y, p.z, p.w};
-        float[] clip = Matrix.multiplyMatrixByVector(viewProjMatrix, v);
+        float[] clip = Matrix.multiplyMatrixByVector(rotateViewProjMatrix, v);
         if (clip == null) return null;
 
         float w = 1.0f / clip[3];
@@ -104,5 +106,12 @@ public class Camera {
 
     public Point3D getCameraPosition() {
         return eye;
+    }
+
+    public void setRotationMatrix(float[][] rot) {
+        this.rotationMatrix = rot;
+        if (screenWidth > 0 && screenHeight > 0) {
+            updateMatrices(screenWidth, screenHeight);
+        }
     }
 }

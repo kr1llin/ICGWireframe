@@ -2,6 +2,7 @@ package view;
 
 import model.*;
 import util.LineTool;
+import util.Matrix;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ import javax.sound.sampled.Line;
 import javax.swing.*;
 
 
-public class RenderPanel extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener
+public class RenderPanel extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, ComponentListener
 {
     private final int DEFAULT_HEIGHT = 900;
     private final int DEFAULT_WIDTH = 1000;
@@ -38,13 +39,9 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
 
     private final Color defaultColor = Color.white;
 
-    public RenderPanel(JScrollPane scrollPane, FrameWork frameWork)
+    public RenderPanel(FrameWork frameWork)
     {
-        scrollPane.setWheelScrollingEnabled(false);
-        scrollPane.setViewportView(this);
-
-        scrollPane.setBackground(defaultColor);
-        scrollPane.validate();
+        setBackground(defaultColor);
 
         setPreferredSize(new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT));
         this.frameWork = frameWork;
@@ -63,8 +60,12 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         addMouseListener(this);
         addMouseMotionListener(this);
         addMouseWheelListener(this);
+        addComponentListener(this);
     }
 
+    /*
+        Several array traversal -- needs to be changed
+     */
     @Override
     public void paintComponent(Graphics g)
     {
@@ -83,17 +84,15 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         camera.updateMatrices(getWidth(), getHeight()); // when we changed window
         Point3D cameraPos = camera.getCameraPosition();
 
-        List<Point3D> rotatedPoints = new ArrayList<>();
         List<Float> distances = new ArrayList<>();
 
         for (Line3D l : modelLines){
-            Point3D rotP1 = l.p1.rotate(rotX, rotY, rotZ);
-            Point3D rotP2 = l.p2.rotate(rotX, rotY, rotZ);
-            rotatedPoints.add(rotP1);
-            rotatedPoints.add(rotP2);
+            float[][] rotMat = Matrix.getRotationMatrix(rotX, rotY, rotZ);
+            float[] rotP1 = Matrix.multiplyMatrixByVector(rotMat, new float[] {l.p1.x, l.p1.y, l.p1.z, 1});
+            float[] rotP2 = Matrix.multiplyMatrixByVector(rotMat, new float[] {l.p2.x, l.p2.y, l.p2.z, 1});
 
-            float distanceToP1 = (float) Math.sqrt(Math.pow(rotP1.x - cameraPos.x, 2) + Math.pow(rotP1.y - cameraPos.y, 2) + Math.pow(rotP1.z - cameraPos.z, 2));
-            float distanceToP2 = (float) Math.sqrt(Math.pow(rotP2.x - cameraPos.x, 2) + Math.pow(rotP2.y - cameraPos.y, 2) + Math.pow(rotP2.z - cameraPos.z, 2));
+            float distanceToP1 = (float) Math.sqrt(Math.pow(rotP1[0] - cameraPos.x, 2) + Math.pow(rotP1[1] - cameraPos.y, 2) + Math.pow(rotP1[2] - cameraPos.z, 2));
+            float distanceToP2 = (float) Math.sqrt(Math.pow(rotP2[0] - cameraPos.x, 2) + Math.pow(rotP2[1] - cameraPos.y, 2) + Math.pow(rotP2[2] - cameraPos.z, 2));
 
             distances.add(distanceToP1);
             distances.add(distanceToP2);
@@ -107,10 +106,9 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
 
         int idx = 0;
         for (Line3D l : modelLines) {
-            Point3D rotP1 = rotatedPoints.get(idx++);
-            Point3D rotP2 = rotatedPoints.get(idx++);
-            float d1 = distances.get(idx-2);
-            float d2 = distances.get(idx-1);
+            float d1 = distances.get(idx);
+            float d2 = distances.get(idx+1);
+            idx += 2;
 
             // 1 - near, 0 - far
             float depth1 = 1.0f - (d1 - minDist) / (maxDist - minDist);
@@ -118,8 +116,8 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
             depth1 = Math.min(1.0f, Math.max(0.0f, depth1));
             depth2 = Math.min(1.0f, Math.max(0.0f, depth2));
 
-            Point2D viewP1 = camera.project(rotP1);
-            Point2D viewP2 = camera.project(rotP2);
+            Point2D viewP1 = camera.project(l.p1);
+            Point2D viewP2 = camera.project(l.p2);
             lineTool.drawLine(viewP1, viewP2, depth1, depth2);
         }
 
@@ -128,10 +126,12 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         g.drawImage(img, 0, 0, null);
     }
 
+
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         float delta = e.getWheelRotation() > 0 ? 0.9f : 1.1f;
         float newZn = camera.getZn() * delta;
+        modelContext.Zn = newZn;
         camera.setZn(newZn);
         camera.updateMatrices(getWidth(), getHeight());
         repaint();
@@ -163,6 +163,10 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
             rotY %= 360;
             lastX = e.getX();
             lastY = e.getY();
+            camera.setRotationMatrix(Matrix.getRotationMatrix(rotX, rotY, rotZ));
+            modelContext.rotX = rotX;
+            modelContext.rotY = rotY;
+            modelContext.rotZ = rotZ;
             repaint();
         }
     }
@@ -176,6 +180,7 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         rotX = 0;
         rotY = 0;
         rotZ = 0;
+        camera.setRotationMatrix(Matrix.getRotationMatrix(rotX, rotY, rotZ));
         repaint();
     }
 
@@ -211,6 +216,7 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         g2d.dispose();
         img = newImg;
         setPreferredSize(new Dimension(imgWidth, imgHeight));
+        setSize(new Dimension(imgWidth, imgHeight));
         lineTool.setImg(img);
 
         revalidate();
@@ -224,11 +230,32 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         repaint();
     }
 
+    @Override
+    public void componentResized(ComponentEvent e) {
+        int width = getWidth();
+        int height = getHeight();
+        resizeCanvas(width, height);
+    }
+
+    @Override
+    public void componentMoved(ComponentEvent e){
+
+    }
+
+    @Override
+    public void componentShown(ComponentEvent e){
+
+    }
+
+    @Override public void componentHidden(ComponentEvent e) {
+
+    }
+
     public void updateModel(List<Point2D.Float> bSplinePoints) {
         model.build(bSplinePoints, modelContext.M, modelContext.M1, modelContext.controlPoints.size());
-        System.out.println("Revolution model points (" + model.getLines().size() + "): " + model.getLines());
+//        System.out.println("Revolution model points (" + model.getLines().size() + "): " + model.getLines());
         model.normalize();
-        System.out.println("After normalization: " + model.getLines());
+//        System.out.println("After normalization: " + model.getLines());
         repaint();
     }
 
@@ -263,5 +290,15 @@ public class RenderPanel extends JPanel implements MouseListener, MouseMotionLis
         g.setColor(Color.BLUE);
         g.drawLine(startX, startY, endX_Z, endY_Z);
         g.drawString("Z", endX_Z + 5, endY_Z - 5);
+    }
+
+    public void setModelContext(ModelContext modelContext) {
+        this.modelContext = modelContext;
+        rotX = modelContext.rotX;
+        rotY = modelContext.rotY;
+        rotZ = modelContext.rotZ;
+        camera.setZn(modelContext.Zn);
+        camera.setRotationMatrix(Matrix.getRotationMatrix(rotX, rotY, rotZ));
+        repaint();
     }
 }

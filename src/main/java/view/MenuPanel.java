@@ -19,15 +19,12 @@ public class MenuPanel extends JMenuBar {
         var fileMenu = new JMenu("File");
         add(fileMenu);
         var openItem = new JMenuItem("Open");
-//        openItem.addActionListener(e -> frameWork.getImageController().openImage(null));
+        openItem.addActionListener(e -> frameWork.getFileManager().openModel());
         fileMenu.add(openItem);
 
         var saveItem = new JMenuItem("Save");
-//        saveItem.addActionListener(e -> frameWork.getImageController().saveImage());
+        saveItem.addActionListener(e -> frameWork.getFileManager().saveModel());
         fileMenu.add(saveItem);
-
-        JMenu optionsMenu = new JMenu("Options");
-        fileMenu.add(optionsMenu);
 
         // About
         JMenu helpMenu = new JMenu("Help");

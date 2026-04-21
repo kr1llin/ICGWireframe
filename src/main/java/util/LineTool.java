@@ -105,7 +105,7 @@ public class LineTool {
 
     // z is for color (should be normilized from box (-1, 1))
     public void putPixel(int x, int y, float z){
-        if (x >= canvas.getWidth() || x < 0 || y >= canvas.getHeight() || y < 0){
+        if (x >= canvas.getImg().getWidth() || x < 0 || y >= canvas.getImg().getHeight() || y < 0){
             return;
         }
         int r1 = (FAR_COLOR_RGB >> 16) & 0xFF;
